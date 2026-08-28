@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  >
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
+
+  <title>창원중앙역 어린이 관제사</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css?v=21"
+  >
+</head>
+
+<body>
+
+<div id="app">
+
+  <header class="top-bar">
+
+    <div class="game-title">
+
+      <div class="title-icon">
+        🚦
+      </div>
+
+      <div>
+        <div class="main-title">
+          창원중앙역 어린이 관제센터
+        </div>
+
+        <div class="sub-title">
+          WHO · WHERE · WHAT · WHY · ACTION
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="score-area">
+
+      <div class="score-chip">
+        사건
+        <b id="roundText">1</b>/10
+      </div>
+
+      <div class="score-chip">
+        ⭐
+        <b id="starText">0</b>
+      </div>
+
+      <div class="score-chip">
+        💬
+        <b id="talkText">0</b>
+      </div>
+
+    </div>
+
+  </header>
+
+
+
+  <main class="station-world">
+
+
+    <div class="sky"></div>
+
+    <div class="sun"></div>
+
+    <div class="cloud cloud-a"></div>
+    <div class="cloud cloud-b"></div>
+
+
+    <div class="mountain mountain-a"></div>
+    <div class="mountain mountain-b"></div>
+
+
+    <div class="station-building">
+
+      <div class="station-glass"></div>
+
+      <div class="station-top-sign">
+        창원중앙역
+        <small>CHANGWON JUNGANG STATION</small>
+      </div>
+
+      <div class="station-clock">
+        🕘
+      </div>
+
+      <div class="station-door door-a"></div>
+      <div class="station-door door-b"></div>
+
+    </div>
+
+
+    <div class="overpass">
+
+      <div class="overpass-window"></div>
+
+      <div class="overpass-window"></div>
+
+      <div class="overpass-window"></div>
+
+      <div class="overpass-window"></div>
+
+    </div>
+
+
+    <div class="stairs stairs-left"></div>
+
+    <div class="stairs stairs-right"></div>
+
+
+    <div
+      id="eventBadge"
+      class="event-badge"
+    >
+      🚨 새로운 역 사건이 발생했어요!
+    </div>
+
+
+
+    <div class="platform-label p1-label">
+      1번 승강장
+    </div>
+
+    <div class="platform-label p2-label">
+      2번 승강장
+    </div>
+
+    <div class="platform-label p3-label">
+      3번 승강장
+    </div>
+
+
+
+    <div
+      id="platform1"
+      class="platform platform-1"
+    >
+      <div class="yellow-line"></div>
+    </div>
+
+    <div
+      id="platform2"
+      class="platform platform-2"
+    >
+      <div class="yellow-line"></div>
+    </div>
+
+    <div
+      id="platform3"
+      class="platform platform-3"
+    >
+      <div class="yellow-line"></div>
+    </div>
+
+
+
+    <div class="rail-track track-1">
+      <div class="rail rail-top"></div>
+      <div class="rail rail-bottom"></div>
+    </div>
+
+    <div class="rail-track track-2">
+      <div class="rail rail-top"></div>
+      <div class="rail rail-bottom"></div>
+    </div>
+
+    <div class="rail-track track-3">
+      <div class="rail rail-top"></div>
+      <div class="rail rail-bottom"></div>
+    </div>
+
+
+
+    <section
+      id="signalA"
+      class="rail-signal signal-a green"
+    >
+
+      <div class="signal-name">
+        A
+      </div>
+
+      <div class="signal-head">
+        <div class="signal-light red-light"></div>
+        <div class="signal-light yellow-light"></div>
+        <div class="signal-light green-light"></div>
+      </div>
+
+      <div class="signal-pole"></div>
+      <div class="signal-base"></div>
+
+    </section>
+
+
+
+    <section
+      id="signalB"
+      class="rail-signal signal-b red"
+    >
+
+      <div class="signal-name">
+        B
+      </div>
+
+      <div class="signal-head">
+        <div class="signal-light red-light"></div>
+        <div class="signal-light yellow-light"></div>
+        <div class="signal-light green-light"></div>
+      </div>
+
+      <div class="signal-pole"></div>
+      <div class="signal-base"></div>
+
+    </section>
+
+
+
+    <div
+      id="passengerMarker"
+      class="passenger-marker"
+    >
+      <div
+        id="passengerIcon"
+        class="person-icon"
+      >
+        👦
+      </div>
+
+      <div
+        id="passengerName"
+        class="person-name"
+      >
+        민수
+      </div>
+    </div>
+
+
+
+    <div
+      id="stationStaff"
+      class="station-staff"
+    >
+      <div class="staff-icon">
+        👨‍✈️
+      </div>
+
+      <div class="staff-label">
+        역무원
+      </div>
+    </div>
+
+
+
+    <div
+      id="srt"
+      class="train srt-train"
+    >
+
+      <div class="srt-nose">
+
+        <div class="srt-front-window"></div>
+
+        <div class="srt-headlight"></div>
+
+      </div>
+
+
+      <div class="srt-car">
+
+        <div class="train-logo">
+          SRT
+        </div>
+
+        <div class="train-windows">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+
+      <div class="srt-car">
+
+        <div class="train-windows">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <div
+      id="ktx"
+      class="train ktx-train"
+    >
+
+      <div class="ktx-nose">
+
+        <div class="ktx-front-window"></div>
+
+        <div class="ktx-headlight"></div>
+
+      </div>
+
+
+      <div class="ktx-car">
+
+        <div class="ktx-logo">
+          KTX-산천
+        </div>
+
+        <div class="train-windows">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+
+      <div class="ktx-car">
+
+        <div class="train-windows">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="departure-board">
+
+      <div class="board-title">
+        TRAIN INFORMATION
+      </div>
+
+      <div class="board-row">
+        <span>SRT</span>
+        <span id="srtBoard">대기</span>
+      </div>
+
+      <div class="board-row">
+        <span>KTX-산천</span>
+        <span id="ktxBoard">대기</span>
+      </div>
+
+    </div>
+
+
+  </main>
+
+
+
+  <section class="mission-zone">
+
+
+    <div class="situation-panel">
+
+      <div class="section-title">
+        🚨 현재 상황
+      </div>
+
+
+      <div
+        id="situationText"
+        class="situation-text"
+      >
+        새로운 상황을 준비하고 있어요.
+      </div>
+
+
+      <div class="conversation-title">
+        💬 현장 대화
+      </div>
+
+
+      <div
+        id="dialogueList"
+        class="dialogue-list"
+      ></div>
+
+    </div>
+
+
+
+    <div class="question-panel">
+
+
+      <div class="question-top">
+
+        <div
+          id="questionType"
+          class="question-type who"
+        >
+          WHO
+        </div>
+
+
+        <div
+          id="questionText"
+          class="question-text"
+        >
+          누가 도움을 요청하고 있나요?
+        </div>
+
+      </div>
+
+
+
+      <div
+        id="choices"
+        class="choice-area"
+      ></div>
+
+
+
+      <div class="bottom-panel">
+
+
+        <div class="speak-box">
+
+          <div class="speak-copy">
+
+            <b>
+              🎙️ 관제사가 직접 말해봐요
+            </b>
+
+            <span id="speakPrompt">
+              질문을 해결하면 말하기 미션이 나와요.
+            </span>
+
+          </div>
+
+
+          <button
+            id="speakDoneBtn"
+            disabled
+          >
+            말했어요!
+          </button>
+
+        </div>
+
+
+
+        <div class="next-box">
+
+          <div>
+
+            <div
+              id="progressText"
+              class="progress-text"
+            >
+              질문 1 / 4
+            </div>
+
+            <div
+              id="feedback"
+              class="feedback"
+            >
+              상황을 잘 살펴보세요.
+            </div>
+
+          </div>
+
+
+          <button
+            id="nextBtn"
+            disabled
+          >
+            다음 질문 ▶
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+
+  <div
+    id="finishModal"
+    class="finish-modal hidden"
+  >
+
+    <div class="finish-card">
+
+      <div class="finish-icon">
+        🏆
+      </div>
+
+      <h1>
+        오늘의 관제 업무 완료!
+      </h1>
+
+      <div id="resultText"></div>
+
+      <button id="restartBtn">
+        🚦 다시 관제하기
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="script.js?v=21"></script>
+
+</body>
+</html>
