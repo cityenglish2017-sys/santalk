@@ -1,24 +1,24 @@
-const $ = id =>
-  document.getElementById(id);
+/* =========================================================
+   창원중앙역 어린이 관제사
+   CONTENT EXPANDED VERSION
+   Korean Particle Auto Correction
+========================================================= */
 
+const $ = id => document.getElementById(id);
 
 const random = arr =>
   arr[Math.floor(Math.random() * arr.length)];
 
-
 const shuffle = arr =>
   [...arr].sort(() => Math.random() - 0.5);
 
-
 const TOTAL_ROUNDS = 10;
-
 
 let round = 1;
 let score = 0;
 let talkScore = 0;
 
 let questionIndex = 0;
-
 let answered = false;
 let spoken = false;
 
@@ -26,6 +26,155 @@ let currentEvent = null;
 let currentQuestion = null;
 
 let usedEventIndexes = [];
+
+
+/* =========================================================
+   한국어 조사 자동 처리
+========================================================= */
+
+function getLastHangulChar(text) {
+
+  const chars = [...String(text)].reverse();
+
+  return chars.find(char => {
+
+    const code = char.charCodeAt(0);
+
+    return (
+      code >= 0xAC00 &&
+      code <= 0xD7A3
+    );
+
+  });
+
+}
+
+
+function hasBatchim(text) {
+
+  const lastHangul =
+    getLastHangulChar(text);
+
+  if (!lastHangul) {
+    return false;
+  }
+
+  const code =
+    lastHangul.charCodeAt(0);
+
+  const jong =
+    (code - 0xAC00) % 28;
+
+  return jong !== 0;
+
+}
+
+
+function jongseongIndex(text) {
+
+  const lastHangul =
+    getLastHangulChar(text);
+
+  if (!lastHangul) {
+    return 0;
+  }
+
+  return (
+    lastHangul.charCodeAt(0) -
+    0xAC00
+  ) % 28;
+
+}
+
+
+/* 이 / 가 */
+
+function iga(word) {
+
+  return `${word}${
+    hasBatchim(word)
+      ? "이"
+      : "가"
+  }`;
+
+}
+
+
+/* 은 / 는 */
+
+function eunNeun(word) {
+
+  return `${word}${
+    hasBatchim(word)
+      ? "은"
+      : "는"
+  }`;
+
+}
+
+
+/* 을 / 를 */
+
+function eulReul(word) {
+
+  return `${word}${
+    hasBatchim(word)
+      ? "을"
+      : "를"
+  }`;
+
+}
+
+
+/* 과 / 와 */
+
+function gwaWa(word) {
+
+  return `${word}${
+    hasBatchim(word)
+      ? "과"
+      : "와"
+  }`;
+
+}
+
+
+/* 으로 / 로 */
+
+function euroRo(word) {
+
+  const jong =
+    jongseongIndex(word);
+
+  /*
+    받침 없음 → 로
+    ㄹ 받침 → 로
+    나머지 받침 → 으로
+  */
+
+  if (
+    jong === 0 ||
+    jong === 8
+  ) {
+    return `${word}로`;
+  }
+
+  return `${word}으로`;
+
+}
+
+
+/* 이라고 / 라고 */
+
+function irago(word) {
+
+  return `${word}${
+    hasBatchim(word)
+      ? "이라고"
+      : "라고"
+  }`;
+
+}
 
 
 /* =========================================================
@@ -146,25 +295,29 @@ const toyPeople = [
 
 const children =
   people.filter(
-    p => p.group === "child"
+    person =>
+      person.group === "child"
   );
 
 
 const adults =
   people.filter(
-    p => p.group === "adult"
+    person =>
+      person.group === "adult"
   );
 
 
 const elderly =
   people.filter(
-    p => p.group === "elderly"
+    person =>
+      person.group === "elderly"
   );
 
 
 const babies =
   people.filter(
-    p => p.group === "baby"
+    person =>
+      person.group === "baby"
   );
 
 
@@ -215,52 +368,68 @@ const objects = [
 
 
 /* =========================================================
-   도우미 함수
+   기본 유틸리티
 ========================================================= */
 
-function otherPeopleExcept(name, count = 3) {
+function otherPeopleExcept(
+  name,
+  count = 3
+) {
 
   return shuffle(
     people
       .filter(
-        p =>
-          p.name !== name
+        person =>
+          person.name !== name
       )
       .map(
-        p =>
-          p.name
+        person =>
+          person.name
       )
-  ).slice(0, count);
+  ).slice(
+    0,
+    count
+  );
 
 }
 
 
-function randomWrongPlaces(correct, count = 3) {
+function randomWrongPlaces(
+  correct,
+  count = 3
+) {
 
   return shuffle(
-    stationPlaces
-      .filter(
-        place =>
-          place !== correct
-      )
-  ).slice(0, count);
+    stationPlaces.filter(
+      place =>
+        place !== correct
+    )
+  ).slice(
+    0,
+    count
+  );
 
 }
 
 
-function randomWrongPlatforms(correct, count = 3) {
+function randomWrongPlatforms(
+  correct,
+  count = 3
+) {
 
   return shuffle(
-    platforms
-      .filter(
+    [
+      ...platforms.filter(
         place =>
           place !== correct
-      )
-      .concat([
-        "대합실",
-        "매표소 앞"
-      ])
-  ).slice(0, count);
+      ),
+      "대합실",
+      "매표소 앞"
+    ]
+  ).slice(
+    0,
+    count
+  );
 
 }
 
@@ -300,7 +469,7 @@ function getCharacterIcon(name) {
 
 
 /* =========================================================
-   화면 초기화
+   화면 / 움직임
 ========================================================= */
 
 function resetWorld() {
@@ -322,7 +491,9 @@ function resetWorld() {
 
 
   document
-    .querySelectorAll(".platform")
+    .querySelectorAll(
+      ".platform"
+    )
     .forEach(
       platform => {
 
@@ -336,42 +507,32 @@ function resetWorld() {
 }
 
 
-/* =========================================================
-   승강장 강조
-========================================================= */
-
 function platformElement(name) {
 
   if (
     name === "1번 승강장"
   ) {
-
     return document.querySelector(
       ".p1"
     );
-
   }
 
 
   if (
     name === "2번 승강장"
   ) {
-
     return document.querySelector(
       ".p2"
     );
-
   }
 
 
   if (
     name === "3번 승강장"
   ) {
-
     return document.querySelector(
       ".p3"
     );
-
   }
 
 
@@ -383,12 +544,17 @@ function platformElement(name) {
 function highlightPlatform(name) {
 
   document
-    .querySelectorAll(".platform")
+    .querySelectorAll(
+      ".platform"
+    )
     .forEach(
-      item =>
-        item.classList.remove(
+      platform => {
+
+        platform.classList.remove(
           "active"
-        )
+        );
+
+      }
     );
 
 
@@ -407,11 +573,10 @@ function highlightPlatform(name) {
 }
 
 
-/* =========================================================
-   인물 이동
-========================================================= */
-
-function movePerson(person, place) {
+function movePerson(
+  person,
+  place
+) {
 
   $("personIcon").textContent =
     person.icon;
@@ -491,11 +656,10 @@ function movePerson(person, place) {
 }
 
 
-/* =========================================================
-   열차 이동
-========================================================= */
-
-function moveTrain(train, state) {
+function moveTrain(
+  train,
+  state
+) {
 
   if (
     train === "SRT"
@@ -507,7 +671,6 @@ function moveTrain(train, state) {
 
       $("srt").style.left =
         "41vw";
-
 
       $("srtStatus").textContent =
         "도착";
@@ -522,7 +685,6 @@ function moveTrain(train, state) {
       $("srt").style.left =
         "45vw";
 
-
       $("srtStatus").textContent =
         "정차";
 
@@ -535,7 +697,6 @@ function moveTrain(train, state) {
 
       $("srt").style.left =
         "90vw";
-
 
       $("srtStatus").textContent =
         "출발";
@@ -556,7 +717,6 @@ function moveTrain(train, state) {
       $("ktx").style.left =
         "44vw";
 
-
       $("ktxStatus").textContent =
         "도착";
 
@@ -569,7 +729,6 @@ function moveTrain(train, state) {
 
       $("ktx").style.left =
         "48vw";
-
 
       $("ktxStatus").textContent =
         "정차";
@@ -584,7 +743,6 @@ function moveTrain(train, state) {
       $("ktx").style.left =
         "-20vw";
 
-
       $("ktxStatus").textContent =
         "출발";
 
@@ -596,7 +754,7 @@ function moveTrain(train, state) {
 
 
 /* =========================================================
-   기본 질문 생성
+   공통 질문
 ========================================================= */
 
 function createWhoQuestion(person) {
@@ -605,10 +763,11 @@ function createWhoQuestion(person) {
 
     type: "WHO",
 
-    label: "WHO · 누구?",
+    label:
+      "WHO · 누구?",
 
     question:
-      "이 상황에서 가장 도움이 필요한 사람은 누구인가요?",
+      "이 상황에서 도움이 필요한 사람은 누구인가요?",
 
     correct:
       person.name,
@@ -632,10 +791,11 @@ function createWhereQuestion(
 
     type: "WHERE",
 
-    label: "WHERE · 어디?",
+    label:
+      "WHERE · 어디?",
 
     question:
-      `${person.name}는 어디에 있나요?`,
+      `${eunNeun(person.name)} 어디에 있나요?`,
 
     correct:
       place,
@@ -651,7 +811,8 @@ function createWhereQuestion(
 
 
 /* =========================================================
-   사건 1 - 보호자 잃어버림
+   사건 1
+   보호자를 잃어버림
 ========================================================= */
 
 function lostChildEvent() {
@@ -659,10 +820,8 @@ function lostChildEvent() {
   const child =
     random(children);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -677,7 +836,7 @@ function lostChildEvent() {
       child,
 
     story:
-      `${child.name}가 ${platform}에서 혼자 울고 있습니다. 잠깐 화장실에 다녀왔는데 함께 있던 가족이 보이지 않는다고 합니다.`,
+      `${iga(child.name)} ${platform}에서 혼자 울고 있습니다. 잠시 다른 곳에 다녀온 사이 함께 있던 가족이 보이지 않는다고 합니다.`,
 
     dialogue: [
 
@@ -705,27 +864,32 @@ function lostChildEvent() {
       ),
 
       {
+
         type: "WHY",
 
-        label: "WHY · 왜?",
+        label:
+          "WHY · 왜?",
 
         question:
-          `${child.name}가 왜 도움을 요청하고 있나요?`,
+          `${eunNeun(child.name)} 왜 도움을 요청하고 있나요?`,
 
         correct:
           "함께 있던 가족을 찾지 못해서요.",
 
         wrong: [
           "기차표를 잃어버려서요.",
-          "기차가 늦어서요.",
+          "열차가 늦어서요.",
           "가방이 무거워서요."
         ]
+
       },
 
       {
+
         type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 해야 할까요?",
@@ -738,6 +902,7 @@ function lostChildEvent() {
           "다른 승강장을 돌아다니게 해요.",
           "아무 조치도 하지 않아요."
         ]
+
       }
 
     ],
@@ -752,11 +917,9 @@ function lostChildEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -771,7 +934,8 @@ function lostChildEvent() {
 
 
 /* =========================================================
-   사건 2 - 승강장 잘못 찾음
+   사건 2
+   승강장을 잘못 찾음
 ========================================================= */
 
 function wrongPlatformEvent() {
@@ -779,19 +943,16 @@ function wrongPlatformEvent() {
   const person =
     random(people);
 
-
   const current =
     random(platforms);
-
 
   const correctPlatform =
     random(
       platforms.filter(
-        p =>
-          p !== current
+        place =>
+          place !== current
       )
     );
-
 
   const train =
     random(trains);
@@ -805,18 +966,18 @@ function wrongPlatformEvent() {
     person,
 
     story:
-      `${person.name}가 ${current}에서 ${train}을 기다리고 있습니다. 하지만 ${train}은 ${correctPlatform}에서 출발합니다.`,
+      `${iga(person.name)} ${current}에서 ${eulReul(train)} 기다리고 있습니다. 하지만 ${eunNeun(train)} ${correctPlatform}에서 출발할 예정입니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `${train}을 타려고 하는데 여기에서 기다리면 되나요?`
+        `${eulReul(train)} 타려고 하는데 여기에서 기다리면 되나요?`
       ],
 
       [
         "역무원",
-        `${train}은 ${correctPlatform}에서 출발합니다.`
+        `${eunNeun(train)} ${correctPlatform}에서 출발합니다.`
       ]
 
     ],
@@ -828,12 +989,15 @@ function wrongPlatformEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          `${person.name}에게 어떤 문제가 생겼나요?`,
+          `${ege(person.name)} 어떤 문제가 생겼나요?`,
 
         correct:
           "타야 할 열차의 승강장을 잘못 찾았어요.",
@@ -841,17 +1005,21 @@ function wrongPlatformEvent() {
         wrong: [
           "가방을 잃어버렸어요.",
           "기차표를 잃어버렸어요.",
-          "기차가 고장 났어요."
+          "열차가 고장 났어요."
         ]
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
-          `${train}은 어디에서 출발하나요?`,
+          `${eunNeun(train)} 어디에서 출발하나요?`,
 
         correct:
           correctPlatform,
@@ -860,30 +1028,35 @@ function wrongPlatformEvent() {
           randomWrongPlatforms(
             correctPlatform
           )
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 도와주면 좋을까요?",
 
         correct:
-          `${correctPlatform}으로 안전하게 이동하도록 알려줘요.`,
+          `${euroRo(correctPlatform)} 안전하게 이동하도록 알려줘요.`,
 
         wrong: [
           "현재 승강장에서 계속 기다리라고 해요.",
           "아무 열차나 타라고 해요.",
           "역 밖으로 나가라고 해요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, ${train}은 ${correctPlatform}에서 출발합니다. 천천히 이동해 주세요.`,
+      `${person.name}님, ${eunNeun(train)} ${correctPlatform}에서 출발합니다. 천천히 이동해 주세요.`,
 
     run() {
 
@@ -892,11 +1065,9 @@ function wrongPlatformEvent() {
         current
       );
 
-
       highlightPlatform(
         current
       );
-
 
       moveTrain(
         train,
@@ -911,7 +1082,19 @@ function wrongPlatformEvent() {
 
 
 /* =========================================================
-   사건 3 - 안전선
+   에게 조사
+========================================================= */
+
+function ege(word) {
+
+  return `${word}에게`;
+
+}
+
+
+/* =========================================================
+   사건 3
+   안전선
 ========================================================= */
 
 function safetyLineEvent() {
@@ -919,10 +1102,8 @@ function safetyLineEvent() {
   const child =
     random(children);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -937,7 +1118,7 @@ function safetyLineEvent() {
       child,
 
     story:
-      `${child.name}가 ${platform}의 노란 안전선 바로 앞에서 ${train}을 기다리고 있습니다.`,
+      `${iga(child.name)} ${platform}의 노란 안전선 바로 앞에서 ${eulReul(train)} 기다리고 있습니다. ${iga(train)} 곧 승강장으로 들어옵니다.`,
 
     dialogue: [
 
@@ -948,7 +1129,7 @@ function safetyLineEvent() {
 
       [
         "역무원",
-        `${train}이 곧 들어옵니다. 안전선 뒤로 이동해야 합니다.`
+        `${iga(train)} 곧 들어옵니다. 안전선 뒤로 물러나야 합니다.`
       ]
 
     ],
@@ -965,6 +1146,7 @@ function safetyLineEvent() {
       ),
 
       {
+
         type: "WHY",
 
         label: "WHY · 왜?",
@@ -973,37 +1155,42 @@ function safetyLineEvent() {
           "왜 위험한 상황인가요?",
 
         correct:
-          `${train}이 들어오는데 안전선 가까이에 있기 때문이에요.`,
+          `${iga(train)} 들어오는데 안전선 가까이에 있기 때문이에요.`,
 
         wrong: [
           "기차역이 너무 넓기 때문이에요.",
           "기차표가 없기 때문이에요.",
           "승강장 번호가 많기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 안내해야 할까요?",
 
         correct:
-          "노란 안전선 뒤로 물러나라고 안내해요.",
+          "노란 안전선 뒤로 물러나도록 안내해요.",
 
         wrong: [
           "선로 쪽으로 더 가까이 가라고 해요.",
-          "기차를 바로 앞에서 보라고 해요.",
+          "열차를 바로 앞에서 보라고 해요.",
           "아무 말도 하지 않아요."
         ]
+
       }
 
     ],
 
     speak:
-      `${child.name}야, 기차가 들어오고 있어. 노란 안전선 뒤로 물러나 주세요.`,
+      `${child.name}야, 기차가 들어오고 있어. 노란 안전선 뒤로 물러나 줘.`,
 
     run() {
 
@@ -1012,11 +1199,9 @@ function safetyLineEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -1031,7 +1216,8 @@ function safetyLineEvent() {
 
 
 /* =========================================================
-   사건 4 - 넘어짐
+   사건 4
+   넘어짐
 ========================================================= */
 
 function fallenEvent() {
@@ -1041,7 +1227,6 @@ function fallenEvent() {
       ...elderly,
       ...adults
     ]);
-
 
   const place =
     random([
@@ -1058,13 +1243,13 @@ function fallenEvent() {
     person,
 
     story:
-      `${person.name}가 ${place}에서 발을 헛디뎌 넘어졌습니다. 바로 일어나기 어려워 보입니다.`,
+      `${iga(person.name)} ${place}에서 발을 헛디뎌 넘어졌습니다. 혼자 바로 일어나기 어려워 보입니다.`,
 
     dialogue: [
 
       [
         person.name,
-        "아이고, 조금 아파요."
+        "조금 아파요. 일어나기가 힘들어요."
       ],
 
       [
@@ -1086,45 +1271,53 @@ function fallenEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
           "어떤 일이 생겼나요?",
 
         correct:
-          `${person.name}가 넘어져 도움이 필요해요.`,
+          `${iga(person.name)} 넘어져 도움이 필요해요.`,
 
         wrong: [
           "열차를 잘못 탔어요.",
           "가방을 잃어버렸어요.",
           "기차표를 잃어버렸어요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 해야 할까요?",
 
         correct:
-          "움직이지 않도록 안내하고 역무원에게 도움을 요청해요.",
+          "무리하게 움직이지 않도록 안내하고 역무원에게 도움을 요청해요.",
 
         wrong: [
           "혼자 바로 걸어가라고 해요.",
           "다른 승강장으로 가라고 해요.",
           "아무 조치도 하지 않아요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, 잠시 움직이지 마시고 기다려 주세요. 역무원이 도와드릴게요.`,
+      `${person.name}님, 무리해서 움직이지 마시고 잠시 기다려 주세요. 역무원이 도와드릴게요.`,
 
     run() {
 
@@ -1135,9 +1328,7 @@ function fallenEvent() {
 
 
       if (
-        platforms.includes(
-          place
-        )
+        platforms.includes(place)
       ) {
 
         highlightPlatform(
@@ -1154,7 +1345,8 @@ function fallenEvent() {
 
 
 /* =========================================================
-   사건 5 - 가방 두고 내림
+   사건 5
+   물건을 열차에 두고 내림
 ========================================================= */
 
 function lostBagEvent() {
@@ -1162,14 +1354,11 @@ function lostBagEvent() {
   const person =
     random(people);
 
-
   const platform =
     random(platforms);
 
-
   const train =
     random(trains);
-
 
   const item =
     random(objects);
@@ -1178,23 +1367,23 @@ function lostBagEvent() {
   return {
 
     title:
-      `👜 ${item}을 두고 내렸어요`,
+      `👜 ${eulReul(item)} 두고 내렸어요`,
 
     person,
 
     story:
-      `${person.name}가 ${platform}에서 내린 뒤 ${train} 안에 ${item}을 두고 내린 것을 알게 되었습니다.`,
+      `${iga(person.name)} ${platform}에서 내린 뒤 ${train} 안에 ${eulReul(item)} 두고 내린 것을 알게 되었습니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `${item}을 열차 안에 두고 내렸어요!`
+        `${eulReul(item)} 열차 안에 두고 내렸어요!`
       ],
 
       [
         "역무원",
-        `${train}이 아직 역에 정차하고 있습니다.`
+        `${eunNeun(train)} 아직 역에 정차하고 있습니다.`
       ]
 
     ],
@@ -1206,12 +1395,15 @@ function lostBagEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
-          `${person.name}가 무엇을 두고 내렸나요?`,
+          `${iga(person.name)} 무엇을 두고 내렸나요?`,
 
         correct:
           item,
@@ -1223,15 +1415,19 @@ function lostBagEvent() {
                 object !== item
             )
           ).slice(0,3)
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
-          `${item}은 어디에 있나요?`,
+          `${eunNeun(item)} 어디에 있나요?`,
 
         correct:
           `${train} 안`,
@@ -1241,30 +1437,35 @@ function lostBagEvent() {
           "화장실 앞",
           `${platform} 바닥`
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 해야 할까요?",
 
         correct:
-          "직접 열차를 따라가지 않게 하고 역무원에게 확인을 요청해요.",
+          "승객이 직접 열차를 따라가지 않도록 하고 역무원에게 확인을 요청해요.",
 
         wrong: [
           "선로로 내려가 찾게 해요.",
           "열차를 직접 따라가게 해요.",
           "그냥 포기하라고 해요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, 직접 열차를 따라가지 마세요. 역무원이 ${item}을 확인해드릴게요.`,
+      `${person.name}님, 직접 열차를 따라가지 마세요. 역무원이 ${eulReul(item)} 확인해드릴게요.`,
 
     run() {
 
@@ -1273,11 +1474,9 @@ function lostBagEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -1292,21 +1491,17 @@ function lostBagEvent() {
 
 
 /* =========================================================
-   사건 6 - 방송을 못 들음
+   사건 6
+   방송을 못 들음
 ========================================================= */
 
 function missedAnnouncementEvent() {
 
   const person =
-    random([
-      ...elderly,
-      ...people
-    ]);
-
+    random(people);
 
   const train =
     random(trains);
-
 
   const platform =
     random(platforms);
@@ -1315,12 +1510,12 @@ function missedAnnouncementEvent() {
   return {
 
     title:
-      "📢 역 방송을 잘 못 들었어요",
+      "📢 안내 방송을 잘 못 들었어요",
 
     person,
 
     story:
-      `${person.name}가 ${train}의 승강장 안내 방송을 잘 듣지 못했습니다. ${train}은 ${platform}에서 출발합니다.`,
+      `${iga(person.name)} 역 안의 소음 때문에 ${train} 승강장 안내 방송을 정확히 듣지 못했습니다. ${eunNeun(train)} ${platform}에서 출발합니다.`,
 
     dialogue: [
 
@@ -1331,7 +1526,7 @@ function missedAnnouncementEvent() {
 
       [
         "역무원",
-        `${train}은 ${platform}에서 출발합니다.`
+        `${eunNeun(train)} ${platform}에서 출발합니다.`
       ]
 
     ],
@@ -1343,30 +1538,37 @@ function missedAnnouncementEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          `${person.name}가 무엇을 잘 못 들었나요?`,
+          `${iga(person.name)} 무엇을 잘 듣지 못했나요?`,
 
         correct:
-          "열차의 승강장 안내 방송",
+          "열차 승강장 안내 방송",
 
         wrong: [
-          "열차 안 음악",
+          "날씨 안내",
           "전화 통화",
-          "날씨 안내"
+          "음악 방송"
         ]
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
-          `${train}은 어디에서 출발하나요?`,
+          `${eunNeun(train)} 어디에서 출발하나요?`,
 
         correct:
           platform,
@@ -1375,30 +1577,35 @@ function missedAnnouncementEvent() {
           randomWrongPlatforms(
             platform
           )
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
-          "어떻게 설명해주면 좋을까요?",
+          "어떻게 설명하는 것이 좋을까요?",
 
         correct:
           "승강장 번호를 천천히 다시 알려줘요.",
 
         wrong: [
           "알아서 찾아가라고 해요.",
-          "더 큰 소리로 화를 내요.",
+          "못 들었다고 화를 내요.",
           "아무 말도 하지 않아요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, ${train}은 ${platform}에서 출발합니다. 천천히 이동해 주세요.`,
+      `${person.name}님, ${eunNeun(train)} ${platform}에서 출발합니다. 천천히 이동해 주세요.`,
 
     run() {
 
@@ -1406,7 +1613,6 @@ function missedAnnouncementEvent() {
         person,
         "전광판 앞"
       );
-
 
       moveTrain(
         train,
@@ -1421,7 +1627,8 @@ function missedAnnouncementEvent() {
 
 
 /* =========================================================
-   사건 7 - 화장실 위치 질문
+   사건 7
+   화장실 찾기
 ========================================================= */
 
 function restroomEvent() {
@@ -1438,7 +1645,7 @@ function restroomEvent() {
     person,
 
     story:
-      `${person.name}가 화장실을 찾지 못해 대합실에서 주변을 둘러보고 있습니다.`,
+      `${iga(person.name)} 대합실에서 화장실을 찾지 못해 주변을 둘러보고 있습니다.`,
 
     dialogue: [
 
@@ -1461,12 +1668,15 @@ function restroomEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
-          `${person.name}가 찾는 곳은 어디인가요?`,
+          `${iga(person.name)} 찾고 있는 곳은 어디인가요?`,
 
         correct:
           "화장실",
@@ -1476,15 +1686,19 @@ function restroomEvent() {
           "승강장",
           "매표소"
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          `${person.name}는 왜 역무원에게 질문했나요?`,
+          `${eunNeun(person.name)} 왜 역무원에게 질문했나요?`,
 
         correct:
           "화장실 위치를 모르기 때문이에요.",
@@ -1494,12 +1708,16 @@ function restroomEvent() {
           "열차가 늦었기 때문이에요.",
           "가방을 찾고 있기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떤 대답이 가장 좋을까요?",
@@ -1512,6 +1730,7 @@ function restroomEvent() {
           "다른 사람에게 물어보라고만 해요.",
           "승강장으로 가라고 해요."
         ]
+
       }
 
     ],
@@ -1534,7 +1753,8 @@ function restroomEvent() {
 
 
 /* =========================================================
-   사건 8 - 열차 놓칠 것 같음
+   사건 8
+   열차를 놓칠까 봐 뜀
 ========================================================= */
 
 function runningPassengerEvent() {
@@ -1542,10 +1762,8 @@ function runningPassengerEvent() {
   const person =
     random(people);
 
-
   const train =
     random(trains);
-
 
   const platform =
     random(platforms);
@@ -1559,18 +1777,18 @@ function runningPassengerEvent() {
     person,
 
     story:
-      `${person.name}가 ${train} 출발 시간이 얼마 남지 않았다고 생각해 ${platform}을 향해 빠르게 뛰고 있습니다.`,
+      `${iga(person.name)} ${eulReul(train)} 놓칠까 걱정되어 ${euroRo(platform)} 빠르게 뛰어가고 있습니다.`,
 
     dialogue: [
 
       [
         person.name,
-        "기차 놓치겠어요! 빨리 뛰어야 해요!"
+        "기차를 놓치겠어요! 빨리 뛰어야 해요!"
       ],
 
       [
         "역무원",
-        "역 안에서는 뛰면 다른 사람과 부딪힐 수 있습니다."
+        "역 안에서 뛰면 다른 사람과 부딪히거나 넘어질 수 있습니다."
       ]
 
     ],
@@ -1582,12 +1800,15 @@ function runningPassengerEvent() {
       ),
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          `${person.name}는 왜 뛰고 있나요?`,
+          `${eunNeun(person.name)} 왜 뛰고 있나요?`,
 
         correct:
           "열차를 놓칠까 걱정해서요.",
@@ -1597,15 +1818,19 @@ function runningPassengerEvent() {
           "가방을 찾으려고요.",
           "화장실을 찾으려고요."
         ]
+
       },
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          "역 안에서 뛰면 어떤 문제가 생길 수 있나요?",
+          "역 안에서 뛰면 어떤 위험이 있을까요?",
 
         correct:
           "다른 사람과 부딪히거나 넘어질 수 있어요.",
@@ -1615,12 +1840,16 @@ function runningPassengerEvent() {
           "승강장 번호가 바뀌어요.",
           "기차표가 사라져요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 안내해야 할까요?",
@@ -1633,6 +1862,7 @@ function runningPassengerEvent() {
           "계단을 두 칸씩 뛰어가라고 해요.",
           "사람들을 밀고 가라고 해요."
         ]
+
       }
 
     ],
@@ -1647,11 +1877,9 @@ function runningPassengerEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -1666,7 +1894,8 @@ function runningPassengerEvent() {
 
 
 /* =========================================================
-   사건 9 - 아기 울음
+   사건 9
+   아기가 울음
 ========================================================= */
 
 function cryingBabyEvent() {
@@ -1674,36 +1903,32 @@ function cryingBabyEvent() {
   const baby =
     random(babies);
 
-
   const caregiver =
     random(adults);
-
 
   const place =
     random([
       "대합실",
-      "1번 승강장",
-      "2번 승강장",
-      "3번 승강장"
+      ...platforms
     ]);
 
 
   return {
 
     title:
-      "👶 아기가 크게 울고 있어요",
+      "👶 아기가 울고 있어요",
 
     person:
       baby,
 
     story:
-      `${caregiver.name}와 함께 있던 ${baby.name}가 ${place}에서 갑자기 크게 울기 시작했습니다.`,
+      `${gwaWa(caregiver.name)} 함께 있던 ${iga(baby.name)} ${place}에서 갑자기 크게 울기 시작했습니다.`,
 
     dialogue: [
 
       [
         caregiver.name,
-        `${baby.name}가 계속 울어요. 잠깐 조용한 곳으로 가야 할 것 같아요.`
+        `${iga(baby.name)} 계속 울어요. 잠깐 조용한 곳에서 쉬어야 할 것 같아요.`
       ],
 
       [
@@ -1716,9 +1941,12 @@ function cryingBabyEvent() {
     questions: [
 
       {
-        type: "WHO",
 
-        label: "WHO · 누구?",
+        type:
+          "WHO",
+
+        label:
+          "WHO · 누구?",
 
         question:
           "누가 울고 있나요?",
@@ -1730,6 +1958,7 @@ function cryingBabyEvent() {
           otherPeopleExcept(
             baby.name
           )
+
       },
 
       createWhereQuestion(
@@ -1738,27 +1967,34 @@ function cryingBabyEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
           "지금 어떤 상황인가요?",
 
         correct:
-          `${baby.name}가 크게 울고 있어요.`,
+          `${iga(baby.name)} 크게 울고 있어요.`,
 
         wrong: [
           "열차가 고장 났어요.",
           "가방을 잃어버렸어요.",
           "승객이 넘어졌어요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 도와주면 좋을까요?",
@@ -1771,6 +2007,7 @@ function cryingBabyEvent() {
           "아기를 혼자 두고 가라고 해요.",
           "아무 관심도 주지 않아요."
         ]
+
       }
 
     ],
@@ -1787,9 +2024,7 @@ function cryingBabyEvent() {
 
 
       if (
-        platforms.includes(
-          place
-        )
+        platforms.includes(place)
       ) {
 
         highlightPlatform(
@@ -1806,7 +2041,8 @@ function cryingBabyEvent() {
 
 
 /* =========================================================
-   사건 10 - 까꿍이 분실
+   사건 10
+   까꿍이를 잃어버림
 ========================================================= */
 
 function missingKkakkungiEvent() {
@@ -1814,13 +2050,11 @@ function missingKkakkungiEvent() {
   const child =
     random(children);
 
-
   const toy =
     random([
       toyPeople[0],
       toyPeople[1]
     ]);
-
 
   const place =
     random(stationPlaces);
@@ -1829,24 +2063,24 @@ function missingKkakkungiEvent() {
   return {
 
     title:
-      `🐰 ${toy.name}를 찾고 있어요`,
+      `🐰 ${eulReul(toy.name)} 찾고 있어요`,
 
     person:
       child,
 
     story:
-      `${child.name}가 소중한 ${toy.name}가 보이지 않아 걱정하고 있습니다. 마지막으로 ${place}에서 가지고 있었다고 합니다.`,
+      `${iga(child.name)} 소중한 ${eulReul(toy.name)} 찾고 있습니다. 마지막으로 ${place}에서 ${eulReul(toy.name)} 가지고 있었다고 합니다.`,
 
     dialogue: [
 
       [
         child.name,
-        `${toy.name}가 없어졌어요. 아까까지 같이 있었는데요.`
+        `${iga(toy.name)} 안 보여요. 아까까지 같이 있었는데요.`
       ],
 
       [
         "역무원",
-        `마지막으로 본 장소부터 확인해볼게요.`
+        "마지막으로 본 장소부터 확인해볼게요."
       ]
 
     ],
@@ -1858,12 +2092,15 @@ function missingKkakkungiEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
-          `${child.name}가 무엇을 찾고 있나요?`,
+          `${iga(child.name)} 무엇을 찾고 있나요?`,
 
         correct:
           toy.name,
@@ -1873,15 +2110,19 @@ function missingKkakkungiEvent() {
           "가방",
           "우산"
         ]
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
-          `${toy.name}를 마지막으로 본 곳은 어디인가요?`,
+          `${eulReul(toy.name)} 마지막으로 본 곳은 어디인가요?`,
 
         correct:
           place,
@@ -1890,30 +2131,35 @@ function missingKkakkungiEvent() {
           randomWrongPlaces(
             place
           )
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
-          "가장 좋은 방법은 무엇인가요?",
+          "어떻게 찾는 것이 좋을까요?",
 
         correct:
-          "마지막으로 본 장소를 역무원과 함께 차례로 확인해요.",
+          "마지막으로 본 장소부터 역무원과 함께 차례로 확인해요.",
 
         wrong: [
           "선로에 직접 내려가 찾아요.",
           "혼자 역 전체를 뛰어다녀요.",
           "바로 포기해요."
         ]
+
       }
 
     ],
 
     speak:
-      `${child.name}야, 걱정하지 말고 ${toy.name}를 마지막으로 본 곳부터 같이 찾아보자.`,
+      `${child.name}야, 걱정하지 마. ${eulReul(toy.name)} 마지막으로 본 곳부터 같이 찾아보자.`,
 
     run() {
 
@@ -1930,7 +2176,8 @@ function missingKkakkungiEvent() {
 
 
 /* =========================================================
-   사건 11 - 스파이디가 선로 쪽으로 떨어짐
+   사건 11
+   스파이디가 위험한 곳에 떨어짐
 ========================================================= */
 
 function spideyDangerEvent() {
@@ -1938,10 +2185,8 @@ function spideyDangerEvent() {
   const child =
     random(children);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -1956,7 +2201,7 @@ function spideyDangerEvent() {
       child,
 
     story:
-      `${child.name}가 가지고 놀던 스파이디가 ${platform}의 안전선 바깥쪽으로 떨어졌습니다. ${train}도 곧 들어올 예정입니다.`,
+      `${iga(child.name)} 가지고 놀던 스파이디가 ${platform}의 안전선 바깥쪽으로 떨어졌습니다. ${iga(train)} 곧 들어올 예정입니다.`,
 
     dialogue: [
 
@@ -1979,9 +2224,12 @@ function spideyDangerEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
           "무엇이 위험한 곳에 떨어졌나요?",
@@ -1994,30 +2242,38 @@ function spideyDangerEvent() {
           "가방",
           "우산"
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          `${child.name}가 직접 주우러 가면 왜 안 되나요?`,
+          `${iga(child.name)} 직접 주우러 가면 왜 위험할까요?`,
 
         correct:
-          `${train}이 들어올 수 있고 선로 가까이는 위험하기 때문이에요.`,
+          `${iga(train)} 들어올 수 있고 선로 가까이는 위험하기 때문이에요.`,
 
         wrong: [
           "스파이디가 너무 작기 때문이에요.",
           "기차표가 없기 때문이에요.",
           "승강장이 넓기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 해야 할까요?",
@@ -2028,8 +2284,9 @@ function spideyDangerEvent() {
         wrong: [
           "빨리 뛰어가서 직접 주워요.",
           "선로로 내려가요.",
-          "친구에게 대신 주워오라고 해요."
+          "다른 사람에게 대신 주워오라고 해요."
         ]
+
       }
 
     ],
@@ -2044,11 +2301,9 @@ function spideyDangerEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -2063,7 +2318,8 @@ function spideyDangerEvent() {
 
 
 /* =========================================================
-   사건 12 - 열차 지연
+   사건 12
+   열차 지연
 ========================================================= */
 
 function delayedTrainEvent() {
@@ -2071,14 +2327,11 @@ function delayedTrainEvent() {
   const person =
     random(people);
 
-
   const train =
     random(trains);
 
-
   const platform =
     random(platforms);
-
 
   const delay =
     random([
@@ -2096,18 +2349,18 @@ function delayedTrainEvent() {
     person,
 
     story:
-      `${train}이 운행 사정으로 ${delay} 정도 늦어지고 있습니다. ${person.name}가 ${platform}에서 열차를 기다리고 있습니다.`,
+      `${iga(train)} 운행 사정으로 약 ${delay} 늦어지고 있습니다. ${eunNeun(person.name)} ${platform}에서 열차를 기다리고 있습니다.`,
 
     dialogue: [
 
       [
         person.name,
-        "기차가 왜 안 오나요?"
+        "기차가 왜 아직 안 오나요?"
       ],
 
       [
         "역무원",
-        `${train}이 약 ${delay} 지연되고 있습니다.`
+        `${iga(train)} 약 ${delay} 지연되고 있습니다.`
       ]
 
     ],
@@ -2119,12 +2372,15 @@ function delayedTrainEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          `${train}에는 어떤 일이 생겼나요?`,
+          `${ege(train)} 어떤 일이 생겼나요?`,
 
         correct:
           `${delay} 정도 지연되고 있어요.`,
@@ -2134,48 +2390,57 @@ function delayedTrainEvent() {
           "승강장이 없어졌어요.",
           "기차표가 필요 없게 되었어요."
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          `${person.name}에게 무엇을 알려주는 것이 중요할까요?`,
+          `${ege(person.name)} 어떤 정보를 알려주는 것이 중요할까요?`,
 
         correct:
-          "열차가 늦는 이유와 예상 시간을 알려주는 것이 중요해요.",
+          "열차가 늦고 있다는 사실과 예상 시간을 알려줘요.",
 
         wrong: [
-          "아무 설명도 하지 않는 것이 좋아요.",
-          "다른 이야기만 하는 것이 좋아요.",
-          "열차가 이미 출발했다고 말해요."
+          "아무 설명도 하지 않아요.",
+          "전혀 다른 이야기만 해요.",
+          "이미 출발했다고 말해요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 안내해야 할까요?",
 
         correct:
-          `${train}이 ${delay} 정도 늦는다고 차분히 안내해요.`,
+          `${iga(train)} 약 ${delay} 늦는다고 차분히 안내해요.`,
 
         wrong: [
           "언제 오는지 모른다고만 해요.",
           "다른 역으로 가라고 해요.",
           "열차를 뛰어서 따라가라고 해요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, ${train}이 약 ${delay} 지연되고 있습니다. 조금만 기다려 주세요.`,
+      `${person.name}님, ${iga(train)} 약 ${delay} 지연되고 있습니다. 조금만 기다려 주세요.`,
 
     run() {
 
@@ -2184,11 +2449,9 @@ function delayedTrainEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -2203,7 +2466,8 @@ function delayedTrainEvent() {
 
 
 /* =========================================================
-   사건 13 - 좌석 착오
+   사건 13
+   다른 좌석
 ========================================================= */
 
 function wrongSeatEvent() {
@@ -2211,10 +2475,8 @@ function wrongSeatEvent() {
   const person =
     random(people);
 
-
   const train =
     random(trains);
-
 
   const seat =
     random([
@@ -2233,7 +2495,7 @@ function wrongSeatEvent() {
     person,
 
     story:
-      `${person.name}가 ${train}에 탔는데 표에 적힌 좌석은 ${seat}입니다. 그런데 다른 자리에 앉아 있습니다.`,
+      `${iga(person.name)} ${ege(train)} 탔습니다. 표에 적힌 좌석은 ${seat}인데 다른 좌석에 앉아 있습니다.`,
 
     dialogue: [
 
@@ -2244,7 +2506,7 @@ function wrongSeatEvent() {
 
       [
         "역무원",
-        `표에는 ${seat}라고 적혀 있습니다.`
+        `표에 적힌 좌석은 ${seat}입니다.`
       ]
 
     ],
@@ -2256,9 +2518,12 @@ function wrongSeatEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
           "어떤 문제가 생겼나요?",
@@ -2271,15 +2536,19 @@ function wrongSeatEvent() {
           "열차를 놓쳤어요.",
           "가방을 두고 내렸어요."
         ]
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
-          `${person.name}가 앉아야 하는 좌석은 어디인가요?`,
+          `${iga(person.name)} 앉아야 하는 좌석은 어디인가요?`,
 
         correct:
           seat,
@@ -2291,12 +2560,16 @@ function wrongSeatEvent() {
             "4C",
             "8D"
           ]).slice(0,3)
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 해결하면 좋을까요?",
@@ -2306,15 +2579,16 @@ function wrongSeatEvent() {
 
         wrong: [
           "아무 자리나 앉아요.",
-          "다른 승객에게 자리를 비키라고 해요.",
-          "열차에서 바로 내려요."
+          "다른 승객에게 무조건 자리를 비키라고 해요.",
+          "바로 열차에서 내려요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, 표에 적힌 좌석은 ${seat}입니다. 좌석 번호를 확인해 주세요.`,
+      `${person.name}님, 표에 적힌 좌석은 ${seat}입니다. 좌석 번호를 다시 확인해 주세요.`,
 
     run() {
 
@@ -2322,7 +2596,6 @@ function wrongSeatEvent() {
         person,
         random(platforms)
       );
-
 
       moveTrain(
         train,
@@ -2337,7 +2610,8 @@ function wrongSeatEvent() {
 
 
 /* =========================================================
-   사건 14 - 승차 줄
+   사건 14
+   줄 서기
 ========================================================= */
 
 function queueEvent() {
@@ -2345,10 +2619,8 @@ function queueEvent() {
   const person =
     random(children);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -2357,23 +2629,23 @@ function queueEvent() {
   return {
 
     title:
-      "🚶 열차를 타는 순서를 지켜요",
+      "🚶 차례대로 열차를 타요",
 
     person,
 
     story:
-      `${platform}에 ${train}이 도착했습니다. ${person.name}가 빨리 타고 싶어서 앞사람보다 먼저 들어가려고 합니다.`,
+      `${ege(platform)} ${iga(train)} 도착했습니다. ${iga(person.name)} 빨리 타고 싶어서 앞에 있는 사람보다 먼저 들어가려고 합니다.`,
 
     dialogue: [
 
       [
         person.name,
-        "저 먼저 타면 안 돼요?"
+        "제가 먼저 타면 안 돼요?"
       ],
 
       [
         "역무원",
-        "내리는 승객이 먼저 나오고, 줄을 서서 차례대로 타야 합니다."
+        "내리는 승객이 먼저 나온 뒤 차례대로 타야 합니다."
       ]
 
     ],
@@ -2390,9 +2662,12 @@ function queueEvent() {
       ),
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
           "왜 차례를 지켜야 하나요?",
@@ -2401,19 +2676,23 @@ function queueEvent() {
           "서로 부딪히지 않고 안전하게 타기 위해서예요.",
 
         wrong: [
-          "기차가 더 빨라지기 때문이에요.",
-          "표가 더 싸지기 때문이에요.",
+          "열차가 더 빨라지기 때문이에요.",
+          "기차표가 더 싸지기 때문이에요.",
           "승강장이 커지기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
-          "어떻게 해야 하나요?",
+          "어떻게 행동해야 할까요?",
 
         correct:
           "내리는 사람이 먼저 나온 뒤 줄을 지켜 타요.",
@@ -2423,6 +2702,7 @@ function queueEvent() {
           "문이 열리기 전에 들어가요.",
           "줄을 무시하고 뛰어가요."
         ]
+
       }
 
     ],
@@ -2437,11 +2717,9 @@ function queueEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -2456,7 +2734,8 @@ function queueEvent() {
 
 
 /* =========================================================
-   사건 15 - 엘리베이터 도움
+   사건 15
+   엘리베이터
 ========================================================= */
 
 function elevatorHelpEvent() {
@@ -2473,13 +2752,13 @@ function elevatorHelpEvent() {
     person,
 
     story:
-      `${person.name}가 계단 앞에서 무거운 짐을 들고 있습니다. 계단으로 내려가기 어려워 보입니다.`,
+      `${iga(person.name)} 계단 앞에서 무거운 짐을 들고 있습니다. 짐 때문에 계단으로 이동하기 어려워 보입니다.`,
 
     dialogue: [
 
       [
         person.name,
-        "짐이 무거워서 계단으로 가기가 힘들어요."
+        "짐이 무거워서 계단으로 가기가 힘드네요."
       ],
 
       [
@@ -2495,30 +2774,21 @@ function elevatorHelpEvent() {
         person
       ),
 
-      {
-        type: "WHERE",
-
-        label: "WHERE · 어디?",
-
-        question:
-          `${person.name}는 어디에 있나요?`,
-
-        correct:
-          "계단 앞",
-
-        wrong:
-          randomWrongPlaces(
-            "계단 앞"
-          )
-      },
+      createWhereQuestion(
+        person,
+        "계단 앞"
+      ),
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "왜 도움이 필요한가요?",
+          `${eunNeun(person.name)} 왜 도움이 필요한가요?`,
 
         correct:
           "무거운 짐 때문에 계단을 이용하기 어렵기 때문이에요.",
@@ -2528,12 +2798,16 @@ function elevatorHelpEvent() {
           "열차가 늦기 때문이에요.",
           "화장실을 찾고 있기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 도와드리면 좋을까요?",
@@ -2546,12 +2820,13 @@ function elevatorHelpEvent() {
           "혼자 알아서 찾으라고 해요.",
           "다른 역으로 가라고 해요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, 가까운 엘리베이터를 이용하실 수 있도록 안내해드릴게요.`,
+      `${person.name}님, 가까운 엘리베이터를 안내해드릴게요.`,
 
     run() {
 
@@ -2568,7 +2843,8 @@ function elevatorHelpEvent() {
 
 
 /* =========================================================
-   사건 16 - 목적지 질문
+   사건 16
+   목적지 확인
 ========================================================= */
 
 function destinationQuestionEvent() {
@@ -2576,10 +2852,8 @@ function destinationQuestionEvent() {
   const person =
     random(people);
 
-
   const train =
     random(trains);
-
 
   const destination =
     random([
@@ -2592,23 +2866,23 @@ function destinationQuestionEvent() {
   return {
 
     title:
-      "🗺️ 이 열차가 어디로 가는지 궁금해요",
+      "🗺️ 열차의 목적지를 확인해요",
 
     person,
 
     story:
-      `${person.name}가 ${train}을 타기 전에 이 열차가 ${destination} 방향으로 가는지 확인하고 싶어합니다.`,
+      `${iga(person.name)} ${eulReul(train)} 타기 전에 이 열차가 ${euroRo(destination)} 가는 열차인지 확인하고 싶어합니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `이 ${train}이 ${destination}으로 가나요?`
+        `이 ${iga(train)} ${euroRo(destination)} 가나요?`
       ],
 
       [
         "역무원",
-        `전광판과 표의 목적지를 함께 확인해드릴게요.`
+        "전광판과 기차표의 목적지를 함께 확인해드릴게요."
       ]
 
     ],
@@ -2620,12 +2894,15 @@ function destinationQuestionEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
-          `${person.name}가 무엇을 확인하고 싶어하나요?`,
+          `${iga(person.name)} 무엇을 확인하고 싶어하나요?`,
 
         correct:
           "열차의 목적지",
@@ -2635,15 +2912,19 @@ function destinationQuestionEvent() {
           "가방 위치",
           "열차의 색깔"
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "왜 목적지를 확인해야 하나요?",
+          "왜 열차의 목적지를 확인해야 하나요?",
 
         correct:
           "잘못된 열차를 타지 않기 위해서예요.",
@@ -2653,24 +2934,29 @@ function destinationQuestionEvent() {
           "좌석이 더 커지기 때문이에요.",
           "기차표가 필요 없어지기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
-          "관제사는 어떻게 도와주면 좋을까요?",
+          "어떻게 도와주면 좋을까요?",
 
         correct:
           "전광판과 기차표를 함께 확인해 목적지를 알려줘요.",
 
         wrong: [
           "아무 열차나 타라고 해요.",
-          "직접 확인하지 말라고 해요.",
+          "확인하지 말라고 해요.",
           "무조건 맞다고 대답해요."
         ]
+
       }
 
     ],
@@ -2685,7 +2971,6 @@ function destinationQuestionEvent() {
         "전광판 앞"
       );
 
-
       moveTrain(
         train,
         "stop"
@@ -2699,7 +2984,8 @@ function destinationQuestionEvent() {
 
 
 /* =========================================================
-   사건 17 - 문 닫히는 열차
+   사건 17
+   문이 닫히는 열차
 ========================================================= */
 
 function closingDoorEvent() {
@@ -2707,10 +2993,8 @@ function closingDoorEvent() {
   const person =
     random(people);
 
-
   const train =
     random(trains);
-
 
   const platform =
     random(platforms);
@@ -2724,7 +3008,7 @@ function closingDoorEvent() {
     person,
 
     story:
-      `${train}이 ${platform}에서 출발 준비 중입니다. 문이 닫히려는데 ${person.name}가 뒤늦게 열차로 뛰어가고 있습니다.`,
+      `${iga(train)} ${platform}에서 출발을 준비하고 있습니다. 문이 닫히려는 순간 ${iga(person.name)} 뒤늦게 열차를 타기 위해 뛰어가고 있습니다.`,
 
     dialogue: [
 
@@ -2752,12 +3036,15 @@ function closingDoorEvent() {
       ),
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "왜 바로 뛰어들어가면 안 되나요?",
+          "왜 닫히는 문으로 뛰어들어가면 안 되나요?",
 
         correct:
           "문이 닫히면서 다칠 수 있기 때문이에요.",
@@ -2767,12 +3054,16 @@ function closingDoorEvent() {
           "좌석 번호가 있기 때문이에요.",
           "역무원이 바쁘기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 안내해야 할까요?",
@@ -2785,6 +3076,7 @@ function closingDoorEvent() {
           "가방을 먼저 던지라고 해요.",
           "문을 손으로 잡으라고 해요."
         ]
+
       }
 
     ],
@@ -2799,11 +3091,9 @@ function closingDoorEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -2818,14 +3108,14 @@ function closingDoorEvent() {
 
 
 /* =========================================================
-   사건 18 - 기차표 분실
+   사건 18
+   기차표 분실
 ========================================================= */
 
 function lostTicketEvent() {
 
   const person =
     random(people);
-
 
   const place =
     random([
@@ -2838,12 +3128,12 @@ function lostTicketEvent() {
   return {
 
     title:
-      "🎫 기차표가 안 보여요",
+      "🎫 기차표가 보이지 않아요",
 
     person,
 
     story:
-      `${person.name}가 ${place}에서 기차표를 찾고 있지만 보이지 않습니다.`,
+      `${iga(person.name)} ${place}에서 기차표를 찾고 있지만 보이지 않아 당황하고 있습니다.`,
 
     dialogue: [
 
@@ -2854,7 +3144,7 @@ function lostTicketEvent() {
 
       [
         "역무원",
-        "당황하지 마시고 어디에서 마지막으로 확인했는지 생각해볼게요."
+        "당황하지 마시고 마지막으로 확인한 장소부터 생각해볼게요."
       ]
 
     ],
@@ -2871,12 +3161,15 @@ function lostTicketEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
-          `${person.name}가 무엇을 찾고 있나요?`,
+          `${iga(person.name)} 무엇을 찾고 있나요?`,
 
         correct:
           "기차표",
@@ -2886,15 +3179,19 @@ function lostTicketEvent() {
           "모자",
           "가방"
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
-          "가장 좋은 방법은 무엇인가요?",
+          "어떻게 하는 것이 좋을까요?",
 
         correct:
           "마지막으로 표를 확인한 곳을 생각하고 역무원에게 도움을 요청해요.",
@@ -2904,6 +3201,7 @@ function lostTicketEvent() {
           "다른 사람의 표를 사용해요.",
           "아무 열차나 타요."
         ]
+
       }
 
     ],
@@ -2926,7 +3224,8 @@ function lostTicketEvent() {
 
 
 /* =========================================================
-   사건 19 - 가족 기다리기
+   사건 19
+   가족 기다리기
 ========================================================= */
 
 function waitingFamilyEvent() {
@@ -2934,23 +3233,20 @@ function waitingFamilyEvent() {
   const person =
     random(people);
 
-
   const waitingFor =
     random(
       people.filter(
-        p =>
-          p.name !== person.name
+        other =>
+          other.name !==
+          person.name
       )
     );
-
 
   const place =
     random([
       "대합실",
       "개찰구 앞",
-      "1번 승강장",
-      "2번 승강장",
-      "3번 승강장"
+      ...platforms
     ]);
 
 
@@ -2962,13 +3258,13 @@ function waitingFamilyEvent() {
     person,
 
     story:
-      `${person.name}가 ${place}에서 ${waitingFor.name}을 기다리고 있습니다. 그런데 아직 만나지 못했습니다.`,
+      `${iga(person.name)} ${place}에서 ${eulReul(waitingFor.name)} 기다리고 있습니다. 하지만 아직 만나지 못했습니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `${waitingFor.name}이 아직 안 보여요.`
+        `${iga(waitingFor.name)} 아직 안 보여요.`
       ],
 
       [
@@ -2985,12 +3281,15 @@ function waitingFamilyEvent() {
       ),
 
       {
-        type: "WHO",
 
-        label: "WHO · 누구?",
+        type:
+          "WHO",
+
+        label:
+          "WHO · 누구?",
 
         question:
-          `${person.name}는 누구를 기다리고 있나요?`,
+          `${eunNeun(person.name)} 누구를 기다리고 있나요?`,
 
         correct:
           waitingFor.name,
@@ -2999,6 +3298,7 @@ function waitingFamilyEvent() {
           otherPeopleExcept(
             waitingFor.name
           )
+
       },
 
       createWhereQuestion(
@@ -3007,21 +3307,25 @@ function waitingFamilyEvent() {
       ),
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 하는 것이 좋을까요?",
 
         correct:
-          "만나기로 한 장소를 확인하고 그곳에서 기다려요.",
+          "만나기로 한 장소를 다시 확인하고 그곳에서 기다려요.",
 
         wrong: [
           "역 전체를 뛰어다녀요.",
           "혼자 역 밖으로 나가요.",
           "아무 곳이나 계속 이동해요."
         ]
+
       }
 
     ],
@@ -3044,7 +3348,8 @@ function waitingFamilyEvent() {
 
 
 /* =========================================================
-   사건 20 - 다른 사람 말 오해
+   사건 20
+   안내를 잘못 이해
 ========================================================= */
 
 function misunderstandingEvent() {
@@ -3052,10 +3357,8 @@ function misunderstandingEvent() {
   const person =
     random(people);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -3069,18 +3372,18 @@ function misunderstandingEvent() {
     person,
 
     story:
-      `${person.name}가 역무원의 말을 잘못 이해해 ${train}이 다른 승강장에서 출발한다고 생각하고 있습니다.`,
+      `${iga(person.name)} 역무원의 말을 잘못 이해해 ${iga(train)} 다른 승강장에서 출발한다고 생각하고 있습니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `${train}은 3번 승강장이라고 하셨죠?`
+        `${eunNeun(train)} 3번 승강장이라고 하셨죠?`
       ],
 
       [
         "역무원",
-        `아니요. 이번 ${train}은 ${platform}입니다.`
+        `아니요. 이번 ${eunNeun(train)} ${platform}에서 출발합니다.`
       ]
 
     ],
@@ -3092,27 +3395,34 @@ function misunderstandingEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          `${person.name}에게 어떤 일이 생겼나요?`,
+          `${ege(person.name)} 어떤 일이 생겼나요?`,
 
         correct:
-          "안내를 잘못 이해했어요.",
+          "안내 내용을 잘못 이해했어요.",
 
         wrong: [
           "가방을 잃어버렸어요.",
           "넘어졌어요.",
           "기차표를 잃어버렸어요."
         ]
+
       },
 
       {
-        type: "WHERE",
 
-        label: "WHERE · 어디?",
+        type:
+          "WHERE",
+
+        label:
+          "WHERE · 어디?",
 
         question:
           `${train}의 정확한 승강장은 어디인가요?`,
@@ -3124,12 +3434,16 @@ function misunderstandingEvent() {
           randomWrongPlatforms(
             platform
           )
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 말하면 좋을까요?",
@@ -3140,14 +3454,15 @@ function misunderstandingEvent() {
         wrong: [
           "왜 못 들었냐고 화를 내요.",
           "아무 말도 하지 않아요.",
-          "다른 승강장으로 보내요."
+          "틀린 승강장으로 보내요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person.name}님, 이번 ${train}은 ${platform}입니다. 다시 천천히 안내해드릴게요.`,
+      `${person.name}님, 이번 ${eunNeun(train)} ${platform}에서 출발합니다. 다시 천천히 안내해드릴게요.`,
 
     run() {
 
@@ -3155,7 +3470,6 @@ function misunderstandingEvent() {
         person,
         "전광판 앞"
       );
-
 
       moveTrain(
         train,
@@ -3170,7 +3484,8 @@ function misunderstandingEvent() {
 
 
 /* =========================================================
-   사건 21 - 물건이 선로 쪽으로 떨어짐
+   사건 21
+   물건 떨어짐
 ========================================================= */
 
 function droppedObjectEvent() {
@@ -3178,14 +3493,11 @@ function droppedObjectEvent() {
   const person =
     random(people);
 
-
   const object =
     random(objects);
 
-
   const platform =
     random(platforms);
-
 
   const train =
     random(trains);
@@ -3194,18 +3506,18 @@ function droppedObjectEvent() {
   return {
 
     title:
-      `⚠️ ${object}이 위험한 곳에 떨어졌어요`,
+      `⚠️ ${iga(object)} 위험한 곳에 떨어졌어요`,
 
     person,
 
     story:
-      `${person.name}의 ${object}이 ${platform} 안전선 바깥쪽으로 떨어졌습니다. ${train}이 접근할 수 있는 상황입니다.`,
+      `${person.name}의 ${iga(object)} ${platform} 안전선 바깥쪽으로 떨어졌습니다. ${iga(train)} 접근할 수 있는 상황입니다.`,
 
     dialogue: [
 
       [
         person.name,
-        `${object}이 떨어졌어요. 제가 주워도 될까요?`
+        `${iga(object)} 떨어졌어요. 제가 주워도 될까요?`
       ],
 
       [
@@ -3222,9 +3534,12 @@ function droppedObjectEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 것?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 것?",
 
         question:
           "무엇이 떨어졌나요?",
@@ -3239,12 +3554,16 @@ function droppedObjectEvent() {
                 item !== object
             )
           ).slice(0,3)
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
           "왜 직접 주우면 안 되나요?",
@@ -3257,12 +3576,16 @@ function droppedObjectEvent() {
           "승강장이 넓기 때문이에요.",
           "기차표가 없기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 해야 하나요?",
@@ -3275,6 +3598,7 @@ function droppedObjectEvent() {
           "다른 사람에게 내려가 달라고 해요.",
           "빨리 뛰어가서 주워요."
         ]
+
       }
 
     ],
@@ -3289,11 +3613,9 @@ function droppedObjectEvent() {
         platform
       );
 
-
       highlightPlatform(
         platform
       );
-
 
       moveTrain(
         train,
@@ -3308,7 +3630,8 @@ function droppedObjectEvent() {
 
 
 /* =========================================================
-   사건 22 - 친구/가족이 동시에 말함
+   사건 22
+   두 사람이 동시에 말함
 ========================================================= */
 
 function talkingTogetherEvent() {
@@ -3316,12 +3639,12 @@ function talkingTogetherEvent() {
   const person1 =
     random(people);
 
-
   const person2 =
     random(
       people.filter(
-        p =>
-          p.name !== person1.name
+        person =>
+          person.name !==
+          person1.name
       )
     );
 
@@ -3335,7 +3658,7 @@ function talkingTogetherEvent() {
       person1,
 
     story:
-      `${person1.name}와 ${person2.name}가 관제사에게 동시에 다른 질문을 하고 있습니다.`,
+      `${gwaWa(person1.name)} ${iga(person2.name)} 관제사에게 동시에 서로 다른 질문을 하고 있습니다. 두 사람의 말을 한꺼번에 듣기 어렵습니다.`,
 
     dialogue: [
 
@@ -3354,9 +3677,12 @@ function talkingTogetherEvent() {
     questions: [
 
       {
-        type: "WHO",
 
-        label: "WHO · 누구?",
+        type:
+          "WHO",
+
+        label:
+          "WHO · 누구?",
 
         question:
           "누가 동시에 말하고 있나요?",
@@ -3369,30 +3695,38 @@ function talkingTogetherEvent() {
           "역무원 혼자",
           "기관사 혼자"
         ]
+
       },
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          "무슨 문제가 있나요?",
+          "어떤 문제가 생겼나요?",
 
         correct:
-          "두 사람이 동시에 말해서 내용을 듣기 어려워요.",
+          "두 사람이 동시에 말해서 내용을 정확히 듣기 어려워요.",
 
         wrong: [
           "열차가 고장 났어요.",
           "기차표가 없어졌어요.",
           "승강장이 바뀌었어요."
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
           "왜 한 사람씩 말하는 것이 좋을까요?",
@@ -3402,33 +3736,38 @@ function talkingTogetherEvent() {
 
         wrong: [
           "열차가 빨라지기 때문이에요.",
-          "역이 조용해야 하기 때문이에요.",
+          "역이 무조건 조용해야 하기 때문이에요.",
           "기차표가 싸지기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "관제사는 어떻게 말하면 좋을까요?",
 
         correct:
-          `${person1.name}의 말을 먼저 듣고 그 다음 ${person2.name}의 말을 들어요.`,
+          `${person1.name}의 말을 먼저 듣고 그다음 ${person2.name}의 말을 들어요.`,
 
         wrong: [
-          "둘 다 계속 동시에 말하게 해요.",
-          "둘 다 말하지 못하게 해요.",
+          "두 사람 모두 계속 동시에 말하게 해요.",
+          "두 사람 모두 말하지 못하게 해요.",
           "아무 말도 듣지 않아요."
         ]
+
       }
 
     ],
 
     speak:
-      `${person1.name}님 먼저 말씀해 주세요. 그 다음 ${person2.name}님의 이야기를 들을게요.`,
+      `${person1.name}님 먼저 말씀해 주세요. 그다음 ${person2.name}님의 이야기를 들을게요.`,
 
     run() {
 
@@ -3445,14 +3784,14 @@ function talkingTogetherEvent() {
 
 
 /* =========================================================
-   사건 23 - 잘 못 들었을 때 다시 묻기
+   사건 23
+   잘 못 들었을 때 다시 묻기
 ========================================================= */
 
 function askAgainEvent() {
 
   const person =
     random(people);
-
 
   const train =
     random(trains);
@@ -3466,7 +3805,7 @@ function askAgainEvent() {
     person,
 
     story:
-      `${person.name}가 ${train} 관련 안내를 들었지만 주변 소음 때문에 내용을 정확히 듣지 못했습니다.`,
+      `${iga(person.name)} ${train} 관련 안내를 들었지만 주변 소음 때문에 내용을 정확히 듣지 못했습니다.`,
 
     dialogue: [
 
@@ -3489,45 +3828,56 @@ function askAgainEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          `${person.name}에게 어떤 문제가 있나요?`,
+          `${ege(person.name)} 어떤 문제가 생겼나요?`,
 
         correct:
-          "안내를 정확히 듣지 못했어요.",
+          "안내 내용을 정확히 듣지 못했어요.",
 
         wrong: [
           "가방을 잃어버렸어요.",
           "열차를 놓쳤어요.",
           "넘어졌어요."
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "잘 못 들었을 때 왜 다시 물어봐야 하나요?",
+          "잘 못 들었을 때 왜 다시 물어봐야 할까요?",
 
         correct:
           "잘못 이해하지 않고 정확한 정보를 알기 위해서예요.",
 
         wrong: [
-          "기차가 빨라지기 때문이에요.",
+          "열차가 빨라지기 때문이에요.",
           "역무원이 심심하기 때문이에요.",
           "표가 없어지기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떤 말이 가장 좋을까요?",
@@ -3540,6 +3890,7 @@ function askAgainEvent() {
           "아무 말이나 대답해요.",
           "다른 이야기로 바꿔요."
         ]
+
       }
 
     ],
@@ -3554,7 +3905,6 @@ function askAgainEvent() {
         "대합실"
       );
 
-
       moveTrain(
         train,
         "stop"
@@ -3568,7 +3918,8 @@ function askAgainEvent() {
 
 
 /* =========================================================
-   사건 24 - 아기까꿍이를 누가 가져갔는지 오해
+   사건 24
+   인형을 착각함
 ========================================================= */
 
 function toyMixupEvent() {
@@ -3576,15 +3927,14 @@ function toyMixupEvent() {
   const child1 =
     random(children);
 
-
   const child2 =
     random(
       children.filter(
-        p =>
-          p.name !== child1.name
+        child =>
+          child.name !==
+          child1.name
       )
     );
-
 
   const toy =
     random([
@@ -3596,13 +3946,13 @@ function toyMixupEvent() {
   return {
 
     title:
-      `🐇 ${toy.name}를 두고 오해가 생겼어요`,
+      `🐇 ${eulReul(toy.name)} 두고 오해가 생겼어요`,
 
     person:
       child1,
 
     story:
-      `${child1.name}가 ${toy.name}를 찾고 있는데 ${child2.name}가 가지고 있는 비슷한 인형을 보고 자기 것이라고 생각했습니다.`,
+      `${iga(child1.name)} ${eulReul(toy.name)} 찾고 있습니다. 그런데 ${iga(child2.name)} 가지고 있는 비슷한 인형을 보고 자신의 인형이라고 생각했습니다.`,
 
     dialogue: [
 
@@ -3621,12 +3971,15 @@ function toyMixupEvent() {
     questions: [
 
       {
-        type: "WHO",
 
-        label: "WHO · 누구?",
+        type:
+          "WHO",
+
+        label:
+          "WHO · 누구?",
 
         question:
-          "누가 인형을 자기 것이라고 생각했나요?",
+          "누가 인형을 자신의 것이라고 생각했나요?",
 
         correct:
           child1.name,
@@ -3635,48 +3988,60 @@ function toyMixupEvent() {
           otherPeopleExcept(
             child1.name
           )
+
       },
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
-          "무슨 일이 생겼나요?",
+          "어떤 오해가 생겼나요?",
 
         correct:
-          "비슷한 인형을 보고 자기 것이라고 오해했어요.",
+          "비슷한 인형을 보고 자신의 것이라고 생각했어요.",
 
         wrong: [
           "열차를 잘못 탔어요.",
           "기차표를 잃어버렸어요.",
           "승강장을 잘못 찾았어요."
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "바로 가져가면 안 되는 이유는 무엇인가요?",
+          "왜 바로 인형을 가져가면 안 될까요?",
 
         correct:
-          "다른 사람의 물건일 수 있으니 먼저 확인해야 하기 때문이에요.",
+          "다른 사람의 물건일 수 있으므로 먼저 확인해야 하기 때문이에요.",
 
         wrong: [
           "인형이 너무 작기 때문이에요.",
           "열차가 늦기 때문이에요.",
           "승강장이 좁기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 말하는 것이 좋을까요?",
@@ -3689,6 +4054,7 @@ function toyMixupEvent() {
           "상대방에게 화를 내요.",
           "인형을 숨겨요."
         ]
+
       }
 
     ],
@@ -3711,7 +4077,8 @@ function toyMixupEvent() {
 
 
 /* =========================================================
-   사건 25 - 스파이디가 안내판을 가림
+   사건 25
+   스파이디가 전광판을 가림
 ========================================================= */
 
 function sillySpideyEvent() {
@@ -3720,20 +4087,16 @@ function sillySpideyEvent() {
     random(children);
 
 
-  const platform =
-    random(platforms);
-
-
   return {
 
     title:
-      "🕷️ 스파이디 때문에 안내판이 안 보여요",
+      "🕷️ 스파이디가 안내판을 가리고 있어요",
 
     person:
       child,
 
     story:
-      `${child.name}가 스파이디를 전광판 앞에 올려두었습니다. 다른 승객들이 승강장 안내를 보기 어려워졌습니다.`,
+      `${iga(child.name)} 스파이디를 전광판 앞에 올려두었습니다. 스파이디 때문에 다른 승객들이 열차 안내를 보기 어려워졌습니다.`,
 
     dialogue: [
 
@@ -3744,7 +4107,7 @@ function sillySpideyEvent() {
 
       [
         "역무원",
-        "다른 승객들도 전광판을 볼 수 있게 해주세요."
+        "다른 승객들도 전광판을 볼 수 있도록 해주세요."
       ]
 
     ],
@@ -3756,30 +4119,37 @@ function sillySpideyEvent() {
       ),
 
       {
-        type: "WHAT",
 
-        label: "WHAT · 어떤 일?",
+        type:
+          "WHAT",
+
+        label:
+          "WHAT · 어떤 일?",
 
         question:
           "어떤 문제가 생겼나요?",
 
         correct:
-          "스파이디가 전광판을 가려 다른 사람이 보기 어려워요.",
+          "스파이디가 전광판을 가려 다른 승객이 보기 어려워요.",
 
         wrong: [
           "열차가 고장 났어요.",
           "스파이디가 기차를 운전하고 있어요.",
           "승강장이 사라졌어요."
         ]
+
       },
 
       {
-        type: "WHY",
 
-        label: "WHY · 왜?",
+        type:
+          "WHY",
+
+        label:
+          "WHY · 왜?",
 
         question:
-          "왜 스파이디를 옮겨야 하나요?",
+          "왜 스파이디를 옮겨야 할까요?",
 
         correct:
           "다른 사람들도 안내 정보를 봐야 하기 때문이에요.",
@@ -3789,12 +4159,16 @@ function sillySpideyEvent() {
           "열차가 빨라지기 때문이에요.",
           "기차표가 작기 때문이에요."
         ]
+
       },
 
       {
-        type: "ACTION",
 
-        label: "ACTION · 어떻게?",
+        type:
+          "ACTION",
+
+        label:
+          "ACTION · 어떻게?",
 
         question:
           "어떻게 하면 좋을까요?",
@@ -3807,6 +4181,7 @@ function sillySpideyEvent() {
           "다른 승객에게 보지 말라고 해요.",
           "스파이디를 승강장 바닥에 던져요."
         ]
+
       }
 
     ],
@@ -3819,11 +4194,6 @@ function sillySpideyEvent() {
       movePerson(
         child,
         "전광판 앞"
-      );
-
-
-      highlightPlatform(
-        platform
       );
 
     }
@@ -3893,7 +4263,7 @@ const eventFactories = [
 
 
 /* =========================================================
-   사건 선택
+   사건 랜덤 선택
 ========================================================= */
 
 function createEvent() {
@@ -3939,13 +4309,14 @@ function createEvent() {
 
 
 /* =========================================================
-   대화 렌더링
+   대화 표시
 ========================================================= */
 
-function renderDialogue(dialogue) {
+function renderDialogue(
+  dialogue
+) {
 
-  $("dialogueBox")
-    .innerHTML =
+  $("dialogueBox").innerHTML =
     "";
 
 
@@ -4006,18 +4377,15 @@ function loadEvent() {
     createEvent();
 
 
-  $("roundText")
-    .textContent =
+  $("roundText").textContent =
     round;
 
 
-  $("eventBadge")
-    .textContent =
+  $("eventBadge").textContent =
     currentEvent.title;
 
 
-  $("storyText")
-    .textContent =
+  $("storyText").textContent =
     currentEvent.story;
 
 
@@ -4035,8 +4403,7 @@ function loadEvent() {
   }
 
 
-  $("speakBtn")
-    .textContent =
+  $("speakBtn").textContent =
     "말했어요!";
 
 
@@ -4046,7 +4413,7 @@ function loadEvent() {
 
 
 /* =========================================================
-   질문 렌더링
+   질문 표시
 ========================================================= */
 
 function renderQuestion() {
@@ -4060,43 +4427,35 @@ function renderQuestion() {
     ];
 
 
-  $("questionType")
-    .textContent =
+  $("questionType").textContent =
     currentQuestion.label;
 
 
-  $("questionText")
-    .textContent =
+  $("questionText").textContent =
     currentQuestion.question;
 
 
-  $("progressText")
-    .textContent =
+  $("progressText").textContent =
     `질문 ${questionIndex + 1} / ${currentEvent.questions.length}`;
 
 
-  $("feedback")
-    .textContent =
+  $("feedback").textContent =
     "상황을 생각하고 알맞은 답을 골라보세요.";
 
 
-  $("speakText")
-    .textContent =
+  $("speakText").textContent =
     "질문을 모두 해결하면 직접 말해요.";
 
 
-  $("speakBtn")
-    .disabled =
+  $("speakBtn").disabled =
     true;
 
 
-  $("nextBtn")
-    .disabled =
+  $("nextBtn").disabled =
     true;
 
 
-  $("nextBtn")
-    .textContent =
+  $("nextBtn").textContent =
     "다음 질문 ▶";
 
 
@@ -4107,8 +4466,7 @@ function renderQuestion() {
     ]);
 
 
-  $("choiceBox")
-    .innerHTML =
+  $("choiceBox").innerHTML =
     "";
 
 
@@ -4157,12 +4515,8 @@ function chooseAnswer(
   answer
 ) {
 
-  if (
-    answered
-  ) {
-
+  if (answered) {
     return;
-
   }
 
 
@@ -4171,10 +4525,9 @@ function chooseAnswer(
 
   const buttons =
     [
-      ...document
-        .querySelectorAll(
-          ".choice"
-        )
+      ...document.querySelectorAll(
+        ".choice"
+      )
     ];
 
 
@@ -4183,30 +4536,24 @@ function chooseAnswer(
     currentQuestion.correct
   ) {
 
-    button
-      .classList
-      .add(
-        "correct"
-      );
+    button.classList.add(
+      "correct"
+    );
 
 
     score += 2;
 
 
-    $("feedback")
-      .textContent =
+    $("feedback").textContent =
       "✅ 맞았어요! 상황을 잘 이해했어요.";
 
   }
 
-
   else {
 
-    button
-      .classList
-      .add(
-        "wrong"
-      );
+    button.classList.add(
+      "wrong"
+    );
 
 
     const correctButton =
@@ -4221,11 +4568,9 @@ function chooseAnswer(
       correctButton
     ) {
 
-      correctButton
-        .classList
-        .add(
-          "correct"
-        );
+      correctButton.classList.add(
+        "correct"
+      );
 
     }
 
@@ -4233,15 +4578,13 @@ function chooseAnswer(
     score += 1;
 
 
-    $("feedback")
-      .textContent =
+    $("feedback").textContent =
       "💡 초록색 답을 다시 한번 확인해봐요.";
 
   }
 
 
-  $("scoreText")
-    .textContent =
+  $("scoreText").textContent =
     score;
 
 
@@ -4250,31 +4593,24 @@ function chooseAnswer(
     currentEvent.questions.length - 1;
 
 
-  if (
-    last
-  ) {
+  if (last) {
 
-    $("speakText")
-      .textContent =
+    $("speakText").textContent =
       currentEvent.speak;
 
 
-    $("speakBtn")
-      .disabled =
+    $("speakBtn").disabled =
       false;
 
 
-    $("nextBtn")
-      .disabled =
+    $("nextBtn").disabled =
       true;
 
   }
 
-
   else {
 
-    $("nextBtn")
-      .disabled =
+    $("nextBtn").disabled =
       false;
 
   }
@@ -4286,134 +4622,111 @@ function chooseAnswer(
    다음 질문
 ========================================================= */
 
-$("nextBtn")
-  .onclick =
-  function() {
+$("nextBtn").onclick =
+function() {
 
-    const last =
-      questionIndex ===
-      currentEvent.questions.length - 1;
-
-
-    if (
-      !last
-    ) {
-
-      questionIndex++;
+  const last =
+    questionIndex ===
+    currentEvent.questions.length - 1;
 
 
-      renderQuestion();
+  if (!last) {
+
+    questionIndex++;
+
+    renderQuestion();
+
+    return;
+
+  }
 
 
-      return;
-
-    }
-
-
-    if (
-      !spoken
-    ) {
-
-      return;
-
-    }
+  if (!spoken) {
+    return;
+  }
 
 
-    if (
-      round >= TOTAL_ROUNDS
-    ) {
+  if (
+    round >= TOTAL_ROUNDS
+  ) {
 
-      finishGame();
+    finishGame();
 
+    return;
 
-      return;
-
-    }
-
-
-    round++;
+  }
 
 
-    loadEvent();
+  round++;
 
-  };
+  loadEvent();
+
+};
 
 
 /* =========================================================
-   말했어요
+   말하기 완료
 ========================================================= */
 
-$("speakBtn")
-  .onclick =
-  function() {
+$("speakBtn").onclick =
+function() {
 
-    if (
-      spoken
-    ) {
-
-      return;
-
-    }
+  if (spoken) {
+    return;
+  }
 
 
-    spoken = true;
+  spoken = true;
+
+  talkScore += 2;
 
 
-    talkScore += 2;
+  $("talkText").textContent =
+    talkScore;
 
 
-    $("talkText")
-      .textContent =
-      talkScore;
+  $("speakBtn").textContent =
+    "👍 잘했어요";
 
 
-    $("speakBtn")
-      .textContent =
-      "👍 잘했어요";
+  $("speakBtn").disabled =
+    true;
 
 
-    $("speakBtn")
-      .disabled =
-      true;
+  $("feedback").textContent =
+    "🌟 관제 성공! 다음 사건으로 가요.";
 
 
-    $("feedback")
-      .textContent =
-      "🌟 관제 성공! 다음 사건으로 가요.";
+  $("nextBtn").textContent =
+    "다음 사건 ▶";
 
 
-    $("nextBtn")
-      .textContent =
-      "다음 사건 ▶";
+  $("nextBtn").disabled =
+    false;
 
-
-    $("nextBtn")
-      .disabled =
-      false;
-
-  };
+};
 
 
 /* =========================================================
-   종료
+   게임 종료
 ========================================================= */
 
 function finishGame() {
 
-  $("result")
-    .innerHTML =
+  $("result").innerHTML =
     `
-    🚨 해결한 사건 <b>${TOTAL_ROUNDS}</b>건
-    <br><br>
+      🚨 해결한 사건 <b>${TOTAL_ROUNDS}</b>건
+      <br><br>
 
-    ⭐ 상황 이해 점수 <b>${score}</b>
-    <br>
+      ⭐ 상황 이해 점수 <b>${score}</b>
+      <br>
 
-    💬 관제 말하기 점수 <b>${talkScore}</b>
-    <br><br>
+      💬 관제 말하기 점수 <b>${talkScore}</b>
 
-    누구 · 어디 · 어떤 일 · 왜 · 어떻게를
-    모두 연습했어요!
+      <br><br>
+
+      누구 · 어디 · 어떤 일 · 왜 · 어떻게를
+      모두 연습했어요!
     `;
 
 
@@ -4430,43 +4743,40 @@ function finishGame() {
    다시 시작
 ========================================================= */
 
-$("restartBtn")
-  .onclick =
-  function() {
+$("restartBtn").onclick =
+function() {
 
-    round = 1;
+  round = 1;
 
-    score = 0;
+  score = 0;
 
-    talkScore = 0;
+  talkScore = 0;
 
-    usedEventIndexes = [];
-
-
-    $("scoreText")
-      .textContent =
-      "0";
+  usedEventIndexes = [];
 
 
-    $("talkText")
-      .textContent =
-      "0";
+  $("scoreText").textContent =
+    "0";
 
 
-    $("finish")
-      .classList
-      .add(
-        "hidden"
-      );
+  $("talkText").textContent =
+    "0";
 
 
-    loadEvent();
+  $("finish")
+    .classList
+    .add(
+      "hidden"
+    );
 
-  };
+
+  loadEvent();
+
+};
 
 
 /* =========================================================
-   게임 시작
+   시작
 ========================================================= */
 
 loadEvent();
